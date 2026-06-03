@@ -78,4 +78,4 @@ const productExecutionTemplate = {
 }
 };
 
-module.exports = productExecutionTemplate;
+module.exports = {productExecutionTemplate};

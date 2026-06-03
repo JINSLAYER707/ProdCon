@@ -80,4 +80,4 @@ stakeholderPriority:{
 }
 };
 
-module.exports = productStrategyTemplate;
+module.exports = {productStrategyTemplate};

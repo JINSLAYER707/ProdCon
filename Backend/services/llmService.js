@@ -1,34 +1,65 @@
-const { OpenRouter } =require("@openrouter/sdk") ;
- const openrouter = new OpenRouter({
-  apiKey: process.env.OPENROUTER_KEY
-});
-async function llmService(prompt){
-   const response = await openrouter.chat.send({
-    chatRequest: {
-        model:"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-        messages:[
-             {
-      role:"system",
-      content:
-      "You are a JSON API. You must only return valid JSON."
-   },
-            {
-                role:"user",
-                content:prompt
-            }
-        ]
+const dotenv = require("dotenv");
+
+dotenv.config({ path: "../.env" });
+
+async function llmService(prompt) {
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "openrouter/owl-alpha",
+        messages: [
+          {
+            role: "system",
+            content: "You are a JSON API. You must only return valid JSON.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        reasoning: {
+          enabled: true,
+        },
+      }),
     }
-});
-const content =response.choices[0].message.content;
-const cleaned = content
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error);
+  }
+
+  const result = await response.json();
+
+  const content =
+    result?.choices?.[0]?.message?.content;
+
+if(!content){
+    console.log(
+        "Unexpected LLM Response:",
+        JSON.stringify(result,null,2)
+    );
+
+    throw new Error(
+        "LLM returned empty content"
+    );
+}
+
+  const cleaned = content
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
     .replace(/\s*```$/i, "")
     .trim();
 
-return JSON.parse(cleaned);
+  return JSON.parse(cleaned);
 }
 
-module.exports={
-    llmService
-}
+module.exports = {
+  llmService,
+};

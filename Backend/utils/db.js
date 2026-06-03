@@ -65,24 +65,6 @@ const UserSchema = new mongoose.Schema(
 
 const EvaluationSchema = new mongoose.Schema(
 {
-    stage:{
-        type:String,
-
-        enum:[
-            "problem_discovery",
-            "solution_exploration",
-            "tradeoff_analysis",
-            "final_recommendation"
-        ],
-
-        required:true
-    },
-
-    userAnswer:{
-        type:String,
-        required:true
-    },
-
     scores:{
 
         productThinking:{
@@ -165,6 +147,15 @@ const ConversationSchema = new mongoose.Schema(
         ],
 
         required:true
+    },
+    currentStage:{
+        type:String,
+        enum:[
+            "problem_discovery",
+            "solution_exploration",
+            "tradeoff_analysis",
+            "final_recommendation"
+        ]
     },
 
     stakeholderRole:{
@@ -271,12 +262,12 @@ const PracticeSessionSchema = new mongoose.Schema(
         type:String,
 
         enum:[
-            "easy",
-            "medium",
-            "hard"
+            "EASY",
+            "MEDIUM",
+            "HARD"
         ],
 
-        default:"medium"
+        default:"MEDIUM"
     },
 
     company:{
@@ -340,6 +331,43 @@ const PracticeSessionSchema = new mongoose.Schema(
         type:Number,
         default:1
     },
+    stageLimit:{
+        problem_discovery:{
+            type:Number,
+            default:4
+        },
+        solution_exploration:{
+            type:Number,
+            default:5
+        },
+        tradeoff_analysis:{
+            type:Number,
+            default:4
+        },
+        final_recommendation:{
+            type:Number,
+            default:2
+        }
+    },
+    stageCount:{
+        problem_discovery:{
+            type:Number,
+            default:0
+        },
+        solution_exploration:{
+            type:Number,
+            default:0
+        },
+        tradeoff_analysis:{
+            type:Number,
+            default:0
+        },
+        final_recommendation:{
+            type:Number,
+            default:0
+        }
+    },
+
 
     stageHistory:[
         StageHistorySchema
@@ -360,7 +388,7 @@ const PracticeSessionSchema = new mongoose.Schema(
         ConversationSchema
     ],
 
-    evaluations:[
+    evaluation:[
         EvaluationSchema
     ],
 
@@ -371,6 +399,10 @@ const PracticeSessionSchema = new mongoose.Schema(
 
     finalFeedback:{
         type:String
+    },
+    forced_transition:{
+        type:Boolean,
+        default:false
     }
 },
 {

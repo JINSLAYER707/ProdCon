@@ -4,12 +4,18 @@ function pickStake(state,scenario,sessionObject){
     if(state.confidence > 0.7 && currentStage !== prevStage){
         const len=scenario.stakeholderPriority[currentStage].length;
         const randomIndex=Math.floor(Math.random()*len);
-        return scenario.stakeholderPriority[currentStage][randomIndex];
+        return {
+            stakeholder:scenario.stakeholderPriority[currentStage][randomIndex],
+            personality:scenario.stakeholders.find(s=> s.role === scenario.stakeholderPriority[currentStage][randomIndex]).personality
+        }
     }
     else{
         const len=scenario.stakeholderPriority[prevStage].length;
         const randomIndex=Math.floor(Math.random()*len);
-        return scenario.stakeholderPriority[prevStage][randomIndex];
+        return {
+            stakeholder:scenario.stakeholderPriority[prevStage][randomIndex],
+            personality:scenario.stakeholders.find(s=> s.role === scenario.stakeholderPriority[prevStage][randomIndex]).personality
+        }
     }
     }
 

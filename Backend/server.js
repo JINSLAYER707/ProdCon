@@ -2,13 +2,17 @@ const express=require('express');
 const app=express();
 const cors=require('cors');
 const mongoose=require('mongoose');
+const {authRouter}=require('./Controllers/authController');
+const {sessionRouter}=require('./Controllers/sessionController');
 require('dotenv').config();
 app.use(cors());
 app.use(express.json());
 const port=process.env.PORT || 5000;
 app.get('/',(req,res)=>{
-    res.send("Welcome to SpendSense API");
-})
+    res.json({message:"Welcome to the Product Management Interview Preparation Platform API"});
+});
+app.use('/',authRouter);
+app.use('/',sessionRouter);
 mongoose.connect(process.env.MONGO_URI).then(()=>{
     console.log("Connected to MongoDB");
     app.listen(port,()=>{

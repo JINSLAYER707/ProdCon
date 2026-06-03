@@ -78,4 +78,4 @@ const productSenseTemplate = {
 
 };
 
-module.exports = productSenseTemplate;
+module.exports = {productSenseTemplate};

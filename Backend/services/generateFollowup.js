@@ -4,9 +4,9 @@ const {buildFinalFollowupPrompt}=require('../prompts/followups/finalFollowup');
 const {buildSolutionFollowupPrompt}=require('../prompts/followups/solutionFollowup');
 const {buildTradeoffFollowupPrompt}=require('../prompts/followups/tradeoffFollowup');
 
-async function generateFollowup(sessionObject,stakeholderRole,currentStage){
+async function generateFollowup(sessionObject,stakeholderRole,currentStage,userInput){
     const conversation=sessionObject.conversation.map(entry=> `${entry.role} , ${entry.stakeholderRole} : ${entry.message}`).join("\n").slice(-8);
-    const userAnswer=sessionObject.conversation.filter(entry=> entry.role==="user").slice(-1)[0].message;
+    const userAnswer=userInput;
     const stakeholder=sessionObject.stakeholders.find(stakeholder=> stakeholder.role===stakeholderRole);
     let prompt;
     switch(currentStage){
