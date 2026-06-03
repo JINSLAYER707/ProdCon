@@ -423,7 +423,7 @@ function AuthScreen({ mode, form, error, loading, onModeChange, onFormChange, on
       <div className="hero auth-hero">
         <div className="hero-badge"><span /> AI-Powered PM Interview Simulator</div>
         <h1>Practice like a<br /><em>real PM</em>.</h1>
-        <p>Adaptive stakeholder roleplays, real-world scenarios, and structured feedback powered by your backend.</p>
+        <p>Adaptive stakeholder roleplays, real-world scenarios, and structured feedback.</p>
       </div>
 
       <div className="auth-shell">
