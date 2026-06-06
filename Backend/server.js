@@ -8,7 +8,7 @@ require('dotenv').config();
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",
+      "http://localhost:5179",
       "https://prodcon-1.onrender.com"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

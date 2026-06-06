@@ -78,6 +78,101 @@ function getInitials(value = "") {
   return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase();
 }
 
+function speakText(text, role = "") {
+  if (!text) return;
+  // Some browsers (Chrome) initially return an empty voices list.
+  // If voices aren't loaded yet, wait for the event and retry.
+  if (speechSynthesis.getVoices().length === 0) {
+    speechSynthesis.onvoiceschanged = () => {
+      speakText(text, role);
+    };
+    return;
+  }
+
+  speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+
+  const voices = speechSynthesis.getVoices();
+
+  const voiceMap = {
+    CEO: 0,
+    Designer: 1,
+    Engineer: 2,
+    "Finance Head": 3,
+    "Product Lead": 4
+  };
+
+  const index = voiceMap[role];
+
+  if (typeof index === "number" && voices[index]) {
+    utterance.voice = voices[index];
+  }
+
+  utterance.rate = 1;
+  utterance.pitch = 1;
+
+  utterance.onstart = () => {
+    try {
+      ttsEvents.dispatchEvent(new Event("start"));
+    } catch (e) {}
+  };
+
+  utterance.onend = () => {
+    try {
+      ttsEvents.dispatchEvent(new Event("end"));
+    } catch (e) {}
+  };
+
+  utterance.onpause = () => {
+    try {
+      ttsEvents.dispatchEvent(new Event("pause"));
+    } catch (e) {}
+  };
+
+  utterance.onresume = () => {
+    try {
+      ttsEvents.dispatchEvent(new Event("resume"));
+    } catch (e) {}
+  };
+
+  utterance.onerror = () => {
+    try {
+      ttsEvents.dispatchEvent(new Event("end"));
+    } catch (e) {}
+  };
+
+  speechSynthesis.speak(utterance);
+}
+
+// Simple event target to let React components track TTS state.
+const ttsEvents = new EventTarget();
+
+function pauseSpeech() {
+  try {
+    if (speechSynthesis.speaking && !speechSynthesis.paused) {
+      speechSynthesis.pause();
+      ttsEvents.dispatchEvent(new Event("pause"));
+    }
+  } catch (e) {}
+}
+
+function resumeSpeech() {
+  try {
+    if (speechSynthesis.paused) {
+      speechSynthesis.resume();
+      ttsEvents.dispatchEvent(new Event("resume"));
+    }
+  } catch (e) {}
+}
+
+function stopSpeech() {
+  try {
+    speechSynthesis.cancel();
+  } catch (e) {}
+  ttsEvents.dispatchEvent(new Event("end"));
+}
+
 function formatDate(value) {
   return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",
@@ -127,6 +222,10 @@ function App() {
   const [feedback, setFeedback] = useState(null);
   const [history, setHistory] = useState(() => readJson("prodcon-history", []));
 
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [playingMessageId, setPlayingMessageId] = useState(null);
+
   const chatEndRef = useRef(null);
   const authed = Boolean(token);
 
@@ -142,6 +241,31 @@ function App() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, chatLoading]);
+
+  useEffect(() => {
+    const onStart = () => {
+      setIsSpeaking(true);
+      setIsPaused(false);
+    };
+    const onEnd = () => {
+      setIsSpeaking(false);
+      setIsPaused(false);
+    };
+    const onPause = () => setIsPaused(true);
+    const onResume = () => setIsPaused(false);
+
+    ttsEvents.addEventListener("start", onStart);
+    ttsEvents.addEventListener("end", onEnd);
+    ttsEvents.addEventListener("pause", onPause);
+    ttsEvents.addEventListener("resume", onResume);
+
+    return () => {
+      ttsEvents.removeEventListener("start", onStart);
+      ttsEvents.removeEventListener("end", onEnd);
+      ttsEvents.removeEventListener("pause", onPause);
+      ttsEvents.removeEventListener("resume", onResume);
+    };
+  }, []);
 
   async function api(path, options = {}) {
     const headers = {
@@ -392,6 +516,23 @@ function App() {
             onAnswerChange={setAnswer}
             onSubmit={sendAnswer}
             onFinish={() => sendAnswer(null, true)}
+            isSpeaking={isSpeaking}
+            isPaused={isPaused}
+            onGlobalPlay={() => {
+              const latest = messages[messages.length - 1];
+              if (latest && latest.kind === "stakeholder") {
+                setPlayingMessageId(latest.id);
+                speakText(latest.text, latest.stakeholder?.role);
+              }
+            }}
+            onGlobalPause={() => pauseSpeech()}
+            onGlobalResume={() => resumeSpeech()}
+            onGlobalStop={() => stopSpeech()}
+            playMessage={(id, text, role) => {
+              setPlayingMessageId(id);
+              speakText(text, role);
+            }}
+            playingMessageId={playingMessageId}
           />
         )}
 
@@ -560,13 +701,135 @@ function SetupScreen({ selectedType, selectedDifficulty, error, loading, onBack,
   );
 }
 
-function InterviewScreen({ selectedType, selectedDifficulty, scenario, stakeholder, stage, messages, answer, loading, chatEndRef, onAnswerChange, onSubmit, onFinish }) {
+function InterviewScreen({
+  selectedType,
+  selectedDifficulty,
+  scenario,
+  stakeholder,
+  stage,
+  messages,
+  answer,
+  loading,
+  chatEndRef,
+  onAnswerChange,
+  onSubmit,
+  onFinish,
+  isSpeaking,
+  isPaused,
+  onGlobalPlay,
+  onGlobalPause,
+  onGlobalResume,
+  onGlobalStop,
+  playMessage,
+  playingMessageId
+}) {
+
+  const [isListening, setIsListening] =
+    useState(false);
+
+  const [autoPlay, setAutoPlay] =
+    useState(true);
+
+  const recognitionRef = useRef(null);
   const stakeholders = scenario?.stakeholders?.length ? scenario.stakeholders : [stakeholder || { role: "Product Lead", personality: "Neutral" }];
   const details = [
     scenario?.company && ["Company", scenario.company],
     scenario?.industry && ["Industry", scenario.industry],
     ...(scenario?.constraints || []).slice(0, 3).map((constraint) => ["Constraint", constraint])
   ].filter(Boolean);
+
+  function startListening() {
+
+  const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    alert(
+      "Voice input works best in Chrome."
+    );
+    return;
+  }
+
+  const recognition =
+    new SpeechRecognition();
+
+  recognition.lang = "en-US";
+  recognition.continuous = true;
+  recognition.interimResults = false;
+
+  recognitionRef.current =
+    recognition;
+
+  recognition.onresult = (event) => {
+
+    let transcript = "";
+
+    for (
+      let i = event.resultIndex;
+      i < event.results.length;
+      i++
+    ) {
+      transcript +=
+        event.results[i][0].transcript +
+        " ";
+    }
+
+    // Use functional setter to avoid stale closure over `answer`.
+    onAnswerChange((prev) => prev + (prev ? " " : "") + transcript);
+  };
+
+  recognition.onend = () => {
+    setIsListening(false);
+  };
+
+  setIsListening(true);
+
+  recognition.start();
+}
+
+function stopListening() {
+
+  if (recognitionRef.current) {
+    recognitionRef.current.stop();
+  }
+
+  setIsListening(false);
+}
+
+useEffect(() => {
+
+  if (!autoPlay) return;
+
+  const latest =
+    messages[messages.length - 1];
+
+  if (
+    latest &&
+    latest.kind === "stakeholder"
+  ) {
+    speakText(
+      latest.text,
+      latest.stakeholder?.role
+    );
+  }
+
+}, [messages, autoPlay]);
+
+useEffect(() => {
+  return () => {
+    // Stop any ongoing speech and recognition when leaving the interview.
+    try {
+      speechSynthesis.cancel();
+    } catch (e) {}
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+  };
+}, []);
 
   return (
     <section className="screen active">
@@ -577,6 +840,45 @@ function InterviewScreen({ selectedType, selectedDifficulty, scenario, stakehold
           <div className="ih-meta">{labelForType(selectedType)} · {labelForDifficulty(selectedDifficulty)}</div>
         </div>
         <div className="ih-right">
+          <label
+  style={{
+    display: "flex",
+    gap: "6px",
+    alignItems: "center",
+    fontSize: "12px"
+  }}
+>
+  <input
+    type="checkbox"
+    checked={autoPlay}
+    onChange={() =>
+      setAutoPlay(!autoPlay)
+    }
+  />
+  Auto Voice
+</label>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: 12 }}>
+            {!isSpeaking && (
+              <button  type="button" onClick={onGlobalPlay} disabled={loading}>
+                🔉 Play
+              </button>
+            )}
+            {isSpeaking && !isPaused && (
+              <button  type="button" onClick={onGlobalPause}>
+                ⏸️ Pause
+              </button>
+            )}
+            {isSpeaking && isPaused && (
+              <button type="button" onClick={onGlobalResume}>
+                ▶️ Resume
+              </button>
+            )}
+            {isSpeaking && (
+              <button  type="button" onClick={onGlobalStop}>
+                ⏹️ Stop
+              </button>
+            )}
+          </div>
           <div className={`stage-badge ${stage}`}>{stageLabels[stage] || stage.replaceAll("_", " ")}</div>
           <button className="btn btn-sm btn-secondary" type="button" onClick={onFinish} disabled={loading}>Finish</button>
         </div>
@@ -606,7 +908,20 @@ function InterviewScreen({ selectedType, selectedDifficulty, scenario, stakehold
 
       <main className="chat-area">
         {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} />
+          <ChatMessage
+            key={message.id}
+            message={message}
+            isSpeaking={isSpeaking}
+            isPaused={isPaused}
+            playingMessageId={playingMessageId}
+            onPlay={() => playMessage?.(message.id, message.text, message.stakeholder?.role)}
+            onPause={() => pauseSpeech()}
+            onResume={() => resumeSpeech()}
+            onStop={() => {
+              stopSpeech();
+              setPlayingMessageId(null);
+            }}
+          />
         ))}
         {loading && <TypingMessage stakeholder={stakeholder} />}
         <div ref={chatEndRef} />
@@ -632,24 +947,76 @@ function InterviewScreen({ selectedType, selectedDifficulty, scenario, stakehold
             <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
           </button>
         </form>
+        <div
+  style={{
+    display: "flex",
+    gap: "8px",
+    marginTop: "8px"
+  }}
+>
+  {!isListening ? (
+    <button
+      type="button"
+      className="btn btn-secondary btn-sm"
+      onClick={startListening}
+      disabled={loading}
+    >
+      🎤 Speak
+    </button>
+  ) : (
+    <button
+      type="button"
+      className="btn btn-secondary btn-sm"
+      onClick={stopListening}
+      disabled={loading}
+    >
+      ⏹ Stop
+    </button>
+  )}
+  {isListening && (
+    <div style={{ alignSelf: "center", marginLeft: 8, fontSize: 13 }}>
+      🎤 Recording...
+    </div>
+  )}
+</div>
       </footer>
     </section>
   );
 }
 
-function ChatMessage({ message }) {
+function ChatMessage({ message, isSpeaking, isPaused, playingMessageId, onPlay, onPause, onResume, onStop }) {
   const isUser = message.kind === "user";
   const isSystem = message.kind === "system";
   const name = isUser ? "You" : isSystem ? "System" : message.stakeholder?.role || "Stakeholder";
   const sub = isUser || isSystem ? "" : message.stakeholder?.personality || "";
   const initials = isUser ? "You" : isSystem ? "!" : getInitials(name);
+  const isThisPlaying = playingMessageId === message.id && isSpeaking;
 
   return (
     <div className={`msg ${isUser ? "user" : ""}`}>
       <div className="avatar">{initials}</div>
       <div className="msg-body">
         <div className="msg-name">{name}{sub ? ` · ${sub}` : ""}</div>
-        <div className="msg-text">{message.text}</div>
+        <div className="msg-text">
+  {message.text}
+
+  {!isUser && !isSystem && (
+    <span style={{ marginLeft: 10 }}>
+      {!isThisPlaying && (
+        <button type="button" className="speak-btn" onClick={onPlay} style={{ cursor: "pointer" }}>🔊</button>
+      )}
+      {isThisPlaying && !isPaused && (
+        <button type="button" className="speak-btn" onClick={onPause} style={{ cursor: "pointer" }}>⏸</button>
+      )}
+      {isThisPlaying && isPaused && (
+        <button type="button" className="speak-btn" onClick={onResume} style={{ cursor: "pointer" }}>▶</button>
+      )}
+      {isThisPlaying && (
+        <button type="button" className="speak-btn" onClick={onStop} style={{ cursor: "pointer" }}>⏹</button>
+      )}
+    </span>
+  )}
+</div>
       </div>
     </div>
   );
