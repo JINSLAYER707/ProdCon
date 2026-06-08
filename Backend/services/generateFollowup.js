@@ -3,8 +3,16 @@ const {buildDiscoveryFollowupPrompt}=require('../prompts/followups/discoveryFoll
 const {buildFinalFollowupPrompt}=require('../prompts/followups/finalFollowup');
 const {buildSolutionFollowupPrompt}=require('../prompts/followups/solutionFollowup');
 const {buildTradeoffFollowupPrompt}=require('../prompts/followups/tradeoffFollowup');
+const { Client } = require("@gradio/client");
+const SPACE_URL =
+      "https://huggingface.co/spaces/Jin9906/prodcon-qwen8B-test";
 
 async function generateFollowup(sessionObject,stakeholderRole,currentStage,userInput){
+      const client = await Client.connect(SPACE_URL);
+      const result = await client.predict(
+        "/predict",
+        [prompt]
+      );
     const conversation=sessionObject.conversation.map(entry=> `${entry.role} , ${entry.stakeholderRole} : ${entry.message}`).join("\n").slice(-8);
     const userAnswer=userInput;
     const stakeholder=sessionObject.stakeholders.find(stakeholder=> stakeholder.role===stakeholderRole);
