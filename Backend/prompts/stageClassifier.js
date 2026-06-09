@@ -77,6 +77,29 @@ CRITICAL RESPONSE RULES:
 - The last character of your response must be }
 - Your entire response must be parseable by JSON.parse() without any modification.
 
+IMPORTANT OVERRIDE RULE:
+
+If the LATEST USER RESPONSE is exactly or substantially equivalent to:
+
+"I am ready to conclude. Please evaluate my final recommendation based on the conversation so far."
+
+then you MUST return:
+
+{
+  "stage":"final_recommendation",
+  "confidence":1.0,
+  "stageComplete":true,
+  "reason":"Candidate explicitly requested final evaluation and interview conclusion."
+}
+
+For this case:
+- Do NOT analyze previous stages.
+- Do NOT check whether earlier stages were sufficiently completed.
+- Do NOT remain in the current stage.
+- Always force the stage to "final_recommendation".
+- Always set stageComplete to true.
+- Treat this as an explicit signal that the candidate wants to end the interview and receive final evaluation.
+
 RETURN ONLY VALID JSON.
 
 JSON FORMAT:

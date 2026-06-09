@@ -79,7 +79,7 @@ sessionRouter.post('/session/respond/:sessionId' , async(req,res)=>{
         const convObject=await orchestrate(session,template,userAnswer);
         const {stage,stake,followup}=convObject;
         const update=await updateSession(sessionId,userAnswer,convObject);
-        if(followup.isCompleted || (session.currentStage==="final_recommendation" && session.stageCount["final_recommendation"]>=session.stageLimit["final_recommendation"])){
+        if(userAnswer==="I am ready to conclude. Please evaluate my final recommendation based on the conversation so far."  || followup.isCompleted || (session.currentStage==="final_recommendation" && session.stageCount["final_recommendation"]>=session.stageLimit["final_recommendation"])){
             const evaluation=await evaluateAnswer(session);
             await endSession(sessionId,evaluation);
             return res.status(200).json(evaluation);

@@ -60,11 +60,11 @@ stakeholderPriority:{
 
    problem_discovery:[
       "CEO",
-      "Growth Manager"
+      "Marketing Lead"
    ],
 
    solution_exploration:[
-      "Growth Manager",
+      "Marketing Lead",
       "Product Strategist"
    ],
 

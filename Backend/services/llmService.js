@@ -37,27 +37,31 @@ async function llmService(prompt) {
 
   const result = await response.json();
 
-  const content =
-    result?.choices?.[0]?.message?.content;
+  const content = result?.choices?.[0]?.message?.content;
 
-if(!content){
-    console.log(
-        "Unexpected LLM Response:",
-        JSON.stringify(result,null,2)
-    );
+if (!content) {
+  console.log(
+    "Unexpected LLM Response:",
+    JSON.stringify(result, null, 2)
+  );
 
-    throw new Error(
-        "LLM returned empty content"
-    );
+  throw new Error("LLM returned empty content");
 }
 
-  const cleaned = content
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
+// Extract the first JSON object from the response
+const match = content.match(/\{[\s\S]*\}/);
 
-  return JSON.parse(cleaned);
+if (!match) {
+  console.log("Raw model output:", content);
+  throw new Error("No JSON found in model response");
+}
+
+try {
+  return JSON.parse(match[0]);
+} catch (err) {
+  console.log("Failed JSON:", match[0]);
+  throw err;
+}
 }
 
 module.exports = {

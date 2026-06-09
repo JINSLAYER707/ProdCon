@@ -1,4 +1,5 @@
 const {PracticeSession}=require("../utils/db");
+const {User}=require("../utils/db")
 
 const createSession=async (userId ,difficulty, category, scenarioObject)=>{
     const session = new PracticeSession({
@@ -109,7 +110,12 @@ session.finalScore =
   Number(scores.userEmpathy ?? 0);
     session.status="completed";
     session.finalFeedback=evaluation.aiFeedback;
-    return await session.save();
+    const userId=session.user;
+    const user = await User.findById(userId);
+    user.points+=session.finalScore;
+    await user.save();
+    await session.save();
+    return session;
 }
 
 module.exports={
