@@ -631,7 +631,7 @@ function HomeScreen({ user, stats, onLogout, onStart, onHistory }) {
       <div className="topbar">
         <div>
           <div className="brand">ProdCon</div>
-          <div className="muted small">{user ? `${user.name || user.email} · ${user.points || 0} points` : "Ready for practice"}</div>
+          <div className="muted small">{user ? `${user.name || user.email} · ${user.points} points` : "Ready for practice"}</div>
         </div>
         <button className="btn btn-secondary btn-sm" type="button" onClick={onLogout}>Logout</button>
       </div>

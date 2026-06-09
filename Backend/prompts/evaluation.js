@@ -60,6 +60,38 @@ Evaluate the following competencies:
    - Understanding user problems
    - User-centric thinking
    - Consideration of user experience
+SCORING RUBRIC
+
+Product Thinking
+
+0-2:
+Fails to understand the problem.
+Jumps directly to solutions.
+
+3-4:
+Understands surface symptoms.
+Limited root cause analysis.
+
+5-6:
+Identifies major user and business issues.
+Reasonably structured.
+
+7-8:
+Strong hypothesis-driven reasoning.
+Clearly distinguishes symptoms from causes.
+
+9-10:
+Exceptional strategic thinking.
+Identifies hidden assumptions and second-order effects.
+
+IMPORTANT:
+
+Most candidates should score between 4 and 7.
+
+Scores above 8 should be rare and only awarded when the candidate consistently demonstrates exceptional PM judgment throughout the interview.
+
+Do not inflate scores for candidates who simply ask good questions.
+Reward insight, prioritization, and strategic decision making.
 
 IMPORTANT RULES:
 

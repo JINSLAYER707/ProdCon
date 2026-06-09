@@ -102,17 +102,22 @@ console.log({
    const scores = evaluation.scores || {};
 
 session.finalScore =
-  Number(scores.productThinking ?? 0) +
-  Number(scores.metricsThinking ?? 0) +
-  Number(scores.prioritization ?? 0) +
-  Number(scores.tradeoffAnalysis ?? 0) +
-  Number(scores.communicationClarity ?? 0) +
-  Number(scores.userEmpathy ?? 0);
-    session.status="completed";
-    session.finalFeedback=evaluation.aiFeedback;
-    const userId=session.user;
+      Number(scores.productThinking ?? 0) +
+      Number(scores.metricsThinking ?? 0) +
+      Number(scores.prioritization ?? 0) +
+      Number(scores.tradeoffAnalysis ?? 0) +
+      Number(scores.communicationClarity ?? 0) +
+      Number(scores.userEmpathy ?? 0);
+    session.status = "completed";
+    session.finalFeedback = evaluation.aiFeedback;
+    const userId = session.user;
     const user = await User.findById(userId);
-    user.points+=session.finalScore;
+    if (!user) {
+        throw new Error("User not found while ending session");
+    }
+    user.previousRounds.push(session._id);
+    user.points += session.finalScore;
+    user.averageScore = user.points / user.previousRounds.length;
     await user.save();
     await session.save();
     return session;

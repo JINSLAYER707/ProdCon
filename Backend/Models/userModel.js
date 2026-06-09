@@ -32,12 +32,17 @@ const updateUser=async (userId, SessionObject)=>{
         throw new Error("User not found");
     }
     user.previousRounds.push(SessionObject._id);
-    const final=SessionObject.evaluation.at(-1);
-    const scoreobj=final.scores;
-    const points=scoreobj.productThinking+scoreobj.metricsThinking + scoreobj.prioritization + scoreobj.tradeoffAnalysis + scoreobj.communicationClarity + scoreobj.userEmpathy;
-    user.points+=points;
-    const average= user.points / user.previousRounds.length;
-    user.averageScore=average;
+    const final=SessionObject.evaluation.at(-1) || {};
+    const scoreobj=final.scores || {};
+    const points =
+      Number(scoreobj.productThinking ?? 0) +
+      Number(scoreobj.metricsThinking ?? 0) +
+      Number(scoreobj.prioritization ?? 0) +
+      Number(scoreobj.tradeoffAnalysis ?? 0) +
+      Number(scoreobj.communicationClarity ?? 0) +
+      Number(scoreobj.userEmpathy ?? 0);
+    user.points += points;
+    user.averageScore = user.points / user.previousRounds.length;
     return await user.save();
 
 }
