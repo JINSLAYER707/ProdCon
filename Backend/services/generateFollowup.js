@@ -9,10 +9,6 @@ const SPACE_URL =
 
 async function generateFollowup(sessionObject,stakeholderRole,currentStage,userInput){
       const client = await Client.connect(SPACE_URL);
-      const result = await client.predict(
-        "/predict",
-        [prompt]
-      );
     const conversation=sessionObject.conversation.map(entry=> `${entry.role} , ${entry.stakeholderRole} : ${entry.message}`).join("\n").slice(-8);
     const userAnswer=userInput;
     const stakeholder=sessionObject.stakeholders.find(stakeholder=> stakeholder.role===stakeholderRole);
